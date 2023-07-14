@@ -59,6 +59,7 @@ func (r *RedisSentinelProxy) runListenLoop(ctx context.Context, listener *net.TC
 func (r *RedisSentinelProxy) proxy(incoming io.ReadWriteCloser) {
 	remote, err := utils.TCPConnectWithTimeout(r.masterResolver.MasterAddress())
 	if err != nil {
+		defer incoming.Close()
 		log.Printf("Error connecting to master: %s", err)
 		return
 	}
@@ -66,8 +67,8 @@ func (r *RedisSentinelProxy) proxy(incoming io.ReadWriteCloser) {
 	sigChan := make(chan struct{})
 	defer close(sigChan)
 
-	go pipe(remote, incoming, sigChan)
 	go pipe(incoming, remote, sigChan)
+	go pipe(remote, incoming, sigChan)
 
 	<-sigChan
 	<-sigChan
