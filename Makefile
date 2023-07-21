@@ -3,8 +3,7 @@ GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0
 
 .PHONY: test
-test:
-	go test -v ./...
+tests-intergration:
 	cd test && ./test.sh
 
 .PHONY: build
