@@ -32,3 +32,4 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: flant/redis-sentinel-proxy:${{ github.ref_name }}
+          platforms: linux/amd64,linux/arm64
