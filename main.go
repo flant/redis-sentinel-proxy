@@ -20,28 +20,34 @@ func main() {
 		sentinelAddr         = ":26379"
 		masterName           = "mymaster"
 		masterResolveRetries = 3
+		password             = ""
 	)
 
 	flag.StringVar(&localAddr, "listen", localAddr, "local address")
 	flag.StringVar(&sentinelAddr, "sentinel", sentinelAddr, "remote address")
 	flag.StringVar(&masterName, "master", masterName, "name of the master redis node")
+	flag.StringVar(&password, "password", password, "redis password")
 	flag.IntVar(&masterResolveRetries, "resolve-retries", masterResolveRetries, "number of consecutive retries of the redis master node resolve")
 	flag.Parse()
 
-	if err := runProxying(localAddr, sentinelAddr, masterName, masterResolveRetries); err != nil {
+	if envPassword := os.Getenv("SENTINEL_PASSWORD"); envPassword != "" {
+		password = envPassword
+	}
+
+	if err := runProxying(localAddr, sentinelAddr, password, masterName, masterResolveRetries); err != nil {
 		log.Fatalf("Fatal: %s", err)
 	}
 	log.Println("Exiting...")
 }
 
-func runProxying(localAddr, sentinelAddr, masterName string, masterResolveRetries int) error {
+func runProxying(localAddr, sentinelAddr, password string, masterName string, masterResolveRetries int) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	laddr := resolveTCPAddr(localAddr)
 	saddr := resolveTCPAddr(sentinelAddr)
 
-	masterAddrResolver := masterresolver.NewRedisMasterResolver(masterName, saddr, masterResolveRetries)
+	masterAddrResolver := masterresolver.NewRedisMasterResolver(masterName, saddr, password, masterResolveRetries)
 	rsp := proxy.NewRedisSentinelProxy(laddr, masterAddrResolver)
 
 	eg, ctx := errgroup.WithContext(ctx)
